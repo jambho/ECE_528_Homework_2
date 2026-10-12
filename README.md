@@ -116,8 +116,25 @@ Create your own GitHub repository for this homework assignment. Then, provide yo
 
     1. Configure P2.4 for its primary module function and as an output (SEL0 = 1, SEL1 = 0).
     2. Clear the MC field.
-    3. Load CCR0 with the period value ()
-
+    3. Load CCR0 with the period value (SMCLK/ID/TAIDEX = 12MHz/2/1 = 6MHz. 6,000,000tps * 20ms (0.020 seconds) = 120,000).
+    4. Set TAIDEX to divide by 1.
+    5. Select output mode 2 in CCTL.
+    6. Load CCR1 with the duty cucle value.
+    7. Select SMCLK, divide by 2, and up down mode.
+    ```c
+    void Timer_A0_PWM_Init(void)
+    {
+        P2->SEL0 |= 0x10;
+        P2->SEL1 &= ~0x10;
+        P2->DIR |= 0x10;
+        TIMER_A0->CTL &= ~0x0030;
+        TIMER_A0->CCR[0] = 60000;
+        TIMER_A0->EX0 = 0x0000;
+        TIMER_A0->CCTL[1] |= 0x0040;
+        TIMER_A0->CCR[1] = 30000;
+        TIMER_A0->CTL |= 0x0270;
+    }
+    ```
 12. **(20 pts)** Describe the steps needed to configure Timer_A0 to generate a periodic interrupt every 2 ms with an interrupt priority level of 2. Note that Timer_A0 has an interrupt number of 8.
 
     Use the [Timer_A0_Interrupt.c driver](https://github.com/csun-ece-528-fall26/ECE_528L_Motor_Control/blob/main/ece528L_motor_control/Motor_Control/src/Timer_A0_Interrupt.c) provided in Lab 1 (Motor Control) as a reference.
@@ -126,3 +143,29 @@ Create your own GitHub repository for this homework assignment. Then, provide yo
     - SMCLK is selected as the clock source for Timer_A with a prescaler value of 1 (which means the ID field will be 00b)
     - The TAIDEX field in the TAxEX0 register has a value of 000b (divide by 1)
     - Up mode is selected
+
+    1. Stop the timer by clearing the MC field.
+    2. Select SMCLK as the clock source with ID = 00.
+    3. Set TAIDEX to 000 in the EX0 register.
+    4. Load CCR0 with 24,000 for a 2ms period.
+    5. Enable the capture/compare interrupt for CCR0.
+    6. Set the priority of IRQ to 2.
+    7. Enable IRQ 8.
+    8. Clear the counter and start the timer in up mode.
+    9. Clear the CCIFG flag.
+
+    ```c
+    void Timer_A0_Interrupt_Init(void)
+    {
+        TIMER_A0->CTL &= ~0x0030;
+        TIMER_A0->CTL |= 0x0200;
+        TIMER_A0->CTL &= ~0x00C0;
+        TIMER_A0->EX0 = 0x0000;
+        TIMER_A0->CCR[0] = 23999;
+        TIMER_A0->CCTL[0] |= 0x0010;
+        NVIC->IP[2] = (NVIC->IP[2] & 0xFFFFFF00) | 0x00000040;
+        NVIC->ISER[0] |= 0x00000100;
+        TIMER_A0->CTL |= 0x0014;
+        TIMER_A0->CCTL[0] &= ~0x0001;
+    }
+    ```
